@@ -7,18 +7,19 @@
  uint16_t Read_Encoder_Pulses(void);
  void Init_Encoder_Counter(void);
  void Init_GPIO(void);
- void PWM_Output(uint8_t);
+ void PWM_Output(float);
  
  
-#define Frecuency_Hz (1000)
-#define Period   (SystemCoreClock/Frecuency_Hz)-1     //APB1 CLK 36 MHz 8,000,000/1000= 8000 ciclos
+
+#define Frecuency_Hz (20000)
+#define Period_in_clock_cycles   ((SystemCoreClock)/(Frecuency_Hz))-1     //APB1 Timer-CLK 72 MHz 72,000,000/20000= 3600 ciclos
  
  //Global variable
  uint16_t Encoder_Pulses;
  
  
  int main(void){
- //Init_Clock(); 
+ 
 	 
 	  //Advance Port Bus 2 enabled: AFIO, GPIO_A & GPIO_B
 	 RCC->APB2ENR |= RCC_APB2ENR_AFIOEN | RCC_APB2ENR_IOPAEN + RCC_APB2ENR_IOPBEN;
@@ -26,16 +27,17 @@
 	 //Advance Port Bus 1 enabled: TIM2 
 	 RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;  // enable Timer2 clock
 	 
-	 //Init_GPIO();
+	 PWM_Output(79.48);
+	  
 	 
-	 //Init_Encoder_Counter();
+	  
    while(1){
 		// Encoder_Pulses = Read_Encoder_Pulses();
-		 PWM_Output(50);
+		 
  }
 }
  
- 
+
  void Init_GPIO(void){
 	 
 	
@@ -102,36 +104,28 @@
 	
 }
  
-void PWM_Output(uint8_t duty_cycle){
-	
-	//Clock configuration register (RCC_CFGR)     ver  MCO: Microcontroller clock output 
+void PWM_Output(float duty_cycle){
 	
 	 //Port configuration register low (GPIOx_CRL)   
 	 //set MODE: 0b10 out @ 2 MHz; CNF: 0b10 alternate out push-pull
+	 GPIOA->CRL &= ~GPIO_CRL_CNF1_0;
 	 GPIOA->CRL |= GPIO_CRL_MODE1_1 + GPIO_CRL_CNF1_1; //PA1 (PWM H Bridge)
 
 	
-	//TIMx control register 1 (TIMx_CR1) 
-//	TIM2->CR1 |=   TIM_CR1_ARPE;
-	
-	//TIMx auto-reload register (TIMx_ARR)   Period
-  TIM2->ARR = Period;     //8000 cycles
+	 //TIMx auto-reload register (TIMx_ARR) 
+  TIM2->ARR = Period_in_clock_cycles;     //3600 cycles
 	
 	//TIMx capture/compare register 1 (TIMx_CCR1)    Duty
-	TIM2->CCR2 = Period-3000;//(duty_cycle/100)*Period;
-	
+	float duty_clock_cycles = Period_in_clock_cycles-(duty_cycle/100)*Period_in_clock_cycles;
+	TIM2->CCR2 =duty_clock_cycles;
 	
 	//TIMx capture/compare mode register 1 (TIMx_CCMR1) 
-	TIM2->CCMR1 |= TIM_CCMR1_OC2M + TIM_CCMR1_OC2PE; //TIM_CCMR1_OC1M_2 + TIM_CCMR1_OC1M_1 + TIM_CCMR1_OC1M_0;  //111: PWM mode 2 - In upcounting, channel 1 is inactive as long as TIMx_CNT<TIMx_CCR1 else active 
+	TIM2->CCMR1 |= TIM_CCMR1_OC2M + TIM_CCMR1_OC2PE; //111: PWM mode 2 - In upcounting, channel 1 is inactive as long as TIMx_CNT<TIMx_CCR1 else active 
 	
-  
 	//TIMx capture/compare enable register (TIMx_CCER) 
 	TIM2->CCER |= TIM_CCER_CC2E;     //Enable Output Compare in OC2 pin
 	
 	//TIMx control register 1 (TIMx_CR1) 
 	TIM2->CR1 |= TIM_CR1_CEN;        //Enable TIM2
-
-	TIM1
-	
-    
+   
 }
