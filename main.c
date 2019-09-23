@@ -1,7 +1,44 @@
+ /*                          ***********                                    */
+ /*                          *         *                                  */
+ /*                          *         *                                           */
+ /*                          *         *                                           */
+/*                           *         *                                           */
+ /*                          *         *<--PB11 (UART Rx3)                                           */
+ /*                          *         *-->PB10 (UART Tx3)                                            */
+ /*                          *         *                                           */
+ /*                          *         *                                           */
+ /*                          *         *                                           */
+ /*                          *         *                                           */
+ /*                          *         *                                           */
+ /*                          *         *                                           */
+ /*                          *         *-->PA3 (PWM A2)                                           */
+ /*        (T4 Enc A) PB6 -->*         *-->PA2 (PWM A1)                                           */
+ /*        (T4 Enc B) PB7 -->*         *-->PA1 (PWM Enable)                                          */
+ /*          (CAN Rx) PB8 -->*         *                                           */
+ /*          (CAN Tx) PB9 <--*         *                                           */
+ /*                          *         *                                           */
+ /*                          *         *                                           */
+ /*                          *         *                                           */
+ /*                          ***********                                           */
+
  
+
 #include "stm32f10x.h"
 #include <stdint.h>
 #include <stdbool.h>
+
+#include "controller.h"
+ 
+ typedef struct
+{
+double dState; // Last position input
+double iState; // Integrator state
+double iMax, iMin; // Maximum and minimum allowable integrator state
+double iGain, // integral gain
+pGain, // proportional gain
+dGain; // derivative gain
+} SPid;
+ 
  
  int main(void);
  void Init_Clock(void);
@@ -9,18 +46,44 @@
  void PWM_Output(float);
  void Init_Encoder_Counter(void);
  void Init_External_Interrupt(void);
+ void PID_Init(void);
+ float PID(SPid *, float , float );
+
  
-#define Frecuency_Hz (20000)
+ void USART_Init(void);
+ void USART_Send(int8_t);
+ 
+ 
+ 
+#define Frecuency_Hz (500000)
 #define Period_in_clock_cycles   ((SystemCoreClock)/(Frecuency_Hz))-1     //APB1 Timer-CLK 72 MHz 72,000,000/20000= 3600 ciclos
+
+
+
+//By default the clock is 72 MHz.
+#define UART_BAUDRATE        (115200)
+#define UART_BBR_VALUE  (SystemCoreClock/UART_BAUDRATE)      //APB1 Timer-UART 36,000,000/115200 = 312 = 0x138
+
+
+
  
  //Global variables
 int32_t Encoder_Pulses;
 float Encoder_grades;
 bool Flag =0;          //Flag = 0 means positive turn while Flag = 1 negative turn
+
+SPid PID_Controller;
+float control_signal = 0.0;
+
+
+
  
  
  int main(void){
 
+	 //Advance Port Bus 1 enabled: USART3
+	 RCC->APB1ENR |= RCC_APB1ENR_USART3EN; 
+	 
 	 //Advance Port Bus 2 enabled: AFIO, GPIO_A & GPIO_B
 	 RCC->APB2ENR |= RCC_APB2ENR_AFIOEN | RCC_APB2ENR_IOPAEN + RCC_APB2ENR_IOPBEN;
 	 
@@ -31,15 +94,32 @@ bool Flag =0;          //Flag = 0 means positive turn while Flag = 1 negative tu
 	 Init_Clock();
 	 Init_External_Interrupt();
 	 Init_Encoder_Counter();
-	 PWM_Output(10);
-	  
+	 
 	 
    while(1){
 	
+		  control_signal = PID(&PID_Controller, Encoder_grades, 90);
+	    PWM_Output(control_signal);
 		 
  }
 }
  
+
+void PID_Init(void){
+
+   
+	 PID_Controller.pGain = 0.1;
+	 PID_Controller.iGain = 0;
+	 PID_Controller.dGain = 0;
+	
+	 PID_Controller.iMax = 10;
+	 PID_Controller.iMin = -10;
+	
+	 PID_Controller.iState = 0;
+	 PID_Controller.dState = 0;
+
+}
+
 void Init_Clock(void){
 	 
     // Conf clock : 72MHz using HSE 8MHz crystal w/ PLL X 9 (8MHz x 9 = 72MHz)
@@ -63,12 +143,22 @@ void Init_Clock(void){
 
 void Init_GPIO(void){
 	
-	 GPIOA->CRL |= GPIO_CRL_MODE2_1 + GPIO_CRL_MODE2_0; //PA2 Output mode 2 MHz  (A1 H Bridge )
-	 GPIOA->CRL |= GPIO_CRL_MODE3_1 + GPIO_CRL_MODE3_0; //PA3 Output mode 2 MHz  (A2 H Bridge
-		 
+	
 }
 
-void PWM_Output(float duty_cycle){
+void PWM_Output(float control_signal){
+	
+	float duty_cycle_percent = 0;
+	float duty_clock_cycles = 0; 
+	uint8_t Max_sink_voltaje = 24;
+	//Control signal saturation (Max an Minus DC sink value)
+	if (control_signal < - 24) control_signal = -24;
+	else if (control_signal > 24) control_signal = 24;
+	
+	//Configure PA2 & PA3 as outputs 
+	GPIOA->CRL |= GPIO_CRL_MODE2_1 + GPIO_CRL_MODE2_0; //PA2 Output mode 2 MHz  (A1 H Bridge )
+	GPIOA->CRL |= GPIO_CRL_MODE3_1 + GPIO_CRL_MODE3_0; //PA3 Output mode 2 MHz  (A2 H Bridge
+		 
 	
 	 //Port configuration register low (GPIOx_CRL)   
 	 //set MODE: 0b10 out @ 2 MHz; CNF: 0b10 alternate out push-pull
@@ -79,7 +169,29 @@ void PWM_Output(float duty_cycle){
   TIM2->ARR = Period_in_clock_cycles;     //3600 cycles
 	
 	//TIMx capture/compare register 1 (TIMx_CCR1)    Duty
-	float duty_clock_cycles = Period_in_clock_cycles-(duty_cycle/100)*Period_in_clock_cycles;
+	
+	if(control_signal > 0 && control_signal < 24){
+	  
+		//Port output data register (GPIOx_ODR) (x=A..G) 
+		GPIOA->ODR |= GPIO_ODR_ODR0;                      //Motor turn right
+		duty_cycle_percent = control_signal/Max_sink_voltaje;
+	}
+	
+	if(control_signal < 0 && control_signal > -24){
+	  
+		//Port output data register (GPIOx_ODR) (x=A..G) 
+		GPIOA->ODR |= GPIO_ODR_ODR1; 		//Motor turn left
+		duty_cycle_percent = -(control_signal/Max_sink_voltaje);
+	}
+	
+	if(control_signal == 0 ){
+	  
+		//Port output data register (GPIOx_ODR) (x=A..G) 
+		GPIOA->ODR |= 0x0;                      //Motor turn left
+		duty_cycle_percent = 0;
+	}
+	
+	duty_clock_cycles = Period_in_clock_cycles-(duty_cycle_percent/1)*Period_in_clock_cycles;
 	TIM2->CCR2 =duty_clock_cycles;
 	
 	//TIMx capture/compare mode register 1 (TIMx_CCMR1) 
@@ -179,6 +291,56 @@ float EXTI9_5_IRQHandler(void){
  return Encoder_grades;
 }
 
+void USART_Init(){
+	
+	//PA 11 Rx
+	//PA 12 Tx
+	
+	//Port configuration register high (GPIOx_CRH)
+	GPIOA->CRH |= ~GPIO_CRH_CNF11_0 + GPIO_CRH_CNF11_1;                          //PA11  Input mode/Pull Up
+	GPIOA->CRH |= GPIO_CRH_MODE12_0 + ~GPIO_CRH_CNF12_0 + GPIO_CRH_CNF12_1 ;     //PA12  Output mode/ Push pull
+	
+	//Baud rate register (USART_BRR)
+	USART3->BRR = UART_BBR_VALUE;          //0x138   
+	
+	//Control register 1 (USART_CR1) 
+	USART3->CR1 |=  USART_CR1_UE + USART_CR1_TE + USART_CR1_RE;    //USART ENABLE, TRANSMIT ENABLE, RECIVE ENABLE
+		
+}
+
+void USART_Send(int8_t ch){
+	
+		while(!(USART3->SR & 0x80)){   //TXE: Transmit data register empty
+			
+			USART1->DR = (ch & 0xFF);
+			
+		}
+
+}
+
+float PID(SPid * pid, float real_position, float desired_position)
+{
+	
+	float error = desired_position -real_position;
+	float pTerm, dTerm, iTerm;
+	pTerm = pid->pGain * error; // calculate the proportional term
+
+	
+	// calculate the integral state with appropriate limiting
+	pid->iState += error;
+	
+	if (pid->iState > pid->iMax) pid->iState = pid->iMax;
+	else if (pid->iState < pid->iMin) pid->iState = pid->iMin;
+
+	iTerm = pid->iGain * pid->iState; // calculate the integral term
+
+	
+	dTerm = pid->dGain * (pid->dState - real_position);
+	pid->dState = real_position;
+
+	return pTerm + dTerm + iTerm;
+
+}
 
 
 

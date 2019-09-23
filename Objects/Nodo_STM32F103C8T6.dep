@@ -1,5 +1,5 @@
 Dependencies for Project 'Nodo', Target 'STM32F103C8T6': (DO NOT MODIFY !)
-F (.\main.c)(0x5D729E89)(--c99 --gnu -c --cpu Cortex-M3 -D__EVAL -g -O0 --apcs=interwork --split_sections-I.\RTE\Device\STM32F103C8-I.\RTE\_STM32F103C8T6-IC:\Users\Soul_PC\AppData\Local\Arm\Packs\ARM\CMSIS\5.6.0\CMSIS\Core\Include-IC:\Users\Soul_PC\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.3.0\Device\Include-D__UVISION_VERSION="528" -D_RTE_ -DSTM32F10X_MD-o .\objects\main.o --omf_browse .\objects\main.crf --depend .\objects\main.d)
+F (.\main.c)(0x5D890B94)(--c99 --gnu -c --cpu Cortex-M3 -D__EVAL -g -O0 --apcs=interwork --split_sections-I.\RTE\Device\STM32F103C8-I.\RTE\_STM32F103C8T6-IC:\Users\Soul_PC\AppData\Local\Arm\Packs\ARM\CMSIS\5.6.0\CMSIS\Core\Include-IC:\Users\Soul_PC\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.3.0\Device\Include-D__UVISION_VERSION="528" -D_RTE_ -DSTM32F10X_MD-o .\objects\main.o --omf_browse .\objects\main.crf --depend .\objects\main.d)
 I (C:\Users\Soul_PC\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.3.0\Device\Include\stm32f10x.h)(0x5825EF3C)
 I (.\RTE\_STM32F103C8T6\RTE_Components.h)(0x5D60280B)
 I (C:\Users\Soul_PC\AppData\Local\Arm\Packs\ARM\CMSIS\5.6.0\CMSIS\Core\Include\core_cm3.h)(0x5D264786)
@@ -9,6 +9,10 @@ I (C:\Users\Soul_PC\AppData\Local\Arm\Packs\ARM\CMSIS\5.6.0\CMSIS\Core\Include\c
 I (C:\Users\Soul_PC\AppData\Local\Arm\Packs\ARM\CMSIS\5.6.0\CMSIS\Core\Include\cmsis_armcc.h)(0x5D264786)
 I (C:\Users\Soul_PC\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.3.0\Device\Include\system_stm32f10x.h)(0x5825EF3C)
 I (C:\Keil_v5\ARM\ARMCC\include\stdbool.h)(0x5CEC30AE)
+I (controller.h)(0x5D890103)
+F (.\controller.c)(0x5D890103)(--c99 --gnu -c --cpu Cortex-M3 -D__EVAL -g -O0 --apcs=interwork --split_sections-I.\RTE\Device\STM32F103C8-I.\RTE\_STM32F103C8T6-IC:\Users\Soul_PC\AppData\Local\Arm\Packs\ARM\CMSIS\5.6.0\CMSIS\Core\Include-IC:\Users\Soul_PC\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.3.0\Device\Include-D__UVISION_VERSION="528" -D_RTE_ -DSTM32F10X_MD-o .\objects\controller.o --omf_browse .\objects\controller.crf --depend .\objects\controller.d)
+I (controller.h)(0x5D890103)
+F (.\controller.h)(0x5D890103)()
 F (RTE\Device\STM32F103C8\RTE_Device.h)(0x59289676)()
 F (RTE\Device\STM32F103C8\startup_stm32f10x_md.s)(0x5825EF3C)(--cpu Cortex-M3 --pd "__EVAL SETA 1" -g --apcs=interwork -I.\RTE\Device\STM32F103C8-I.\RTE\_STM32F103C8T6-IC:\Users\Soul_PC\AppData\Local\Arm\Packs\ARM\CMSIS\5.6.0\CMSIS\Core\Include-IC:\Users\Soul_PC\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.3.0\Device\Include--pd "__UVISION_VERSION SETA 528" --pd "_RTE_ SETA 1" --pd "STM32F10X_MD SETA 1"--list .\listings\startup_stm32f10x_md.lst --xref -o .\objects\startup_stm32f10x_md.o --depend .\objects\startup_stm32f10x_md.d)
 F (RTE\Device\STM32F103C8\system_stm32f10x.c)(0x5825EF3C)(--c99 --gnu -c --cpu Cortex-M3 -D__EVAL -g -O0 --apcs=interwork --split_sections-I.\RTE\Device\STM32F103C8-I.\RTE\_STM32F103C8T6-IC:\Users\Soul_PC\AppData\Local\Arm\Packs\ARM\CMSIS\5.6.0\CMSIS\Core\Include-IC:\Users\Soul_PC\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.3.0\Device\Include-D__UVISION_VERSION="528" -D_RTE_ -DSTM32F10X_MD-o .\objects\system_stm32f10x.o --omf_browse .\objects\system_stm32f10x.crf --depend .\objects\system_stm32f10x.d)

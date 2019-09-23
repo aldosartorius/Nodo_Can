@@ -387,6 +387,16 @@
               <FileType>1</FileType>
               <FilePath>.\main.c</FilePath>
             </File>
+            <File>
+              <FileName>controller.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\controller.c</FilePath>
+            </File>
+            <File>
+              <FileName>controller.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\controller.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
