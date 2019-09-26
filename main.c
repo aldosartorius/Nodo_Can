@@ -1,123 +1,116 @@
- /*                          ***********                                    */
- /*                          *         *                                  */
- /*                          *         *                                           */
- /*                          *         *                                           */
-/*                           *         *                                           */
- /*                          *         *<--PB11 (UART Rx3)                                           */
- /*                          *         *-->PB10 (UART Tx3)                                            */
- /*                          *         *                                           */
- /*                          *         *                                           */
- /*                          *         *                                           */
- /*                          *         *                                           */
- /*                          *         *                                           */
- /*                          *         *                                           */
- /*                          *         *-->PA3 (PWM A2)                                           */
- /*        (T4 Enc A) PB6 -->*         *-->PA2 (PWM A1)                                           */
- /*        (T4 Enc B) PB7 -->*         *-->PA1 (PWM Enable)                                          */
- /*          (CAN Rx) PB8 -->*         *                                           */
- /*          (CAN Tx) PB9 <--*         *                                           */
- /*                          *         *                                           */
- /*                          *         *                                           */
- /*                          *         *                                           */
- /*                          ***********                                           */
+/*                          ***********                                           */
+/*                          *         *                                           */
+/*                          *         *                                           */
+/*                          *         *                                           */
+/*                          *         *                                           */
+/*                          *         *<--PB11 (UART Rx3)                         */
+/*                          *         *-->PB10 (UART Tx3)                         */
+/*                          *         *                                           */
+/*                          *         *                                           */
+/*                          *         *                                           */
+/*                          *         *                                           */
+/*                          *         *                                           */
+/*                          *         *                                           */
+/*                          *         *-->PA3 (PWM A2)                            */
+/*        (T4 Enc A) PB6 -->*         *-->PA2 (PWM A1)                            */
+/*        (T4 Enc B) PB7 -->*         *-->PA1 (PWM Enable)                        */
+/*          (CAN Rx) PB8 -->*         *                                           */
+/*          (CAN Tx) PB9 <--*         *                                           */
+/*                          *         *                                           */
+/*                          *         *                                           */
+/*                          *         *                                           */
+/*                          ***********                                           */
 
  
 
-#include "stm32f10x.h"
 #include <stdint.h>
 #include <stdbool.h>
-
-#include "controller.h"
+#include "stm32f10x.h"
  
- typedef struct
+typedef struct
 {
-double dState; // Last position input
-double iState; // Integrator state
-double iMax, iMin; // Maximum and minimum allowable integrator state
-double iGain, // integral gain
-pGain, // proportional gain
-dGain; // derivative gain
+     float dState;            // Last position input
+     float iState;            // Integrator state
+     float iMax, iMin;        // Maximum and minimum allowable integrator state
+     float iGain,             // integral gain
+     pGain,                   // proportional gain
+     dGain;                   // derivative gain
 } SPid;
  
  
- int main(void);
- void Init_Clock(void);
- void Init_GPIO(void);
- void PWM_Output(float);
- void Init_Encoder_Counter(void);
- void Init_External_Interrupt(void);
- void PID_Init(void);
- float PID(SPid *, float , float );
-
- 
- void USART_Init(void);
- void USART_Send(int8_t);
+int main(void);
+void PID_Init(void); 
+void Init_Clock(void);
+void USART_Init(void);
+void PWM_Output(float *);
+void Init_Encoder_Counter(void);
+void Init_External_Interrupt(void);
+void PID(SPid *, float * , float, float * );
+void USART_Send(int8_t);
  
  
- 
-#define Frecuency_Hz (500000)
-#define Period_in_clock_cycles   ((SystemCoreClock)/(Frecuency_Hz))-1     //APB1 Timer-CLK 72 MHz 72,000,000/20000= 3600 ciclos
+//PWM frecuency:  APB1 Timer-CLK 72 MHz 72,000,000/20000= 3600 ciclos
+#define Frecuency_Hz (20000)
+#define Period_in_clock_cycles   ((SystemCoreClock)/(Frecuency_Hz))-1  
 
 
-
-//By default the clock is 72 MHz.
+//UART Baud-Rate: APB1 Timer-UART 36,000,000/115200 = 312 = 0x138
 #define UART_BAUDRATE        (115200)
-#define UART_BBR_VALUE  (SystemCoreClock/UART_BAUDRATE)      //APB1 Timer-UART 36,000,000/115200 = 312 = 0x138
+#define UART_BBR_VALUE  (SystemCoreClock/UART_BAUDRATE)
 
 
-
- 
- //Global variables
+//Global variables
 int32_t Encoder_Pulses;
 float Encoder_grades;
-bool Flag =0;          //Flag = 0 means positive turn while Flag = 1 negative turn
-
-SPid PID_Controller;
+bool Flag =0;                    //Flag = 0 means positive turn while Flag = 1 negative turn
 float control_signal = 0.0;
+SPid PID_Controller;
 
-
-
- 
- 
+  
  int main(void){
 
-	 //Advance Port Bus 1 enabled: USART3
-	 RCC->APB1ENR |= RCC_APB1ENR_USART3EN; 
+	 //Advance Port Bus 1 enabled: TIM2 (PWM), TIM4 (Encoder) & USART3
+	 RCC->APB1ENR |= RCC_APB1ENR_TIM2EN + RCC_APB1ENR_TIM4EN + RCC_APB1ENR_USART3EN; 
 	 
 	 //Advance Port Bus 2 enabled: AFIO, GPIO_A & GPIO_B
 	 RCC->APB2ENR |= RCC_APB2ENR_AFIOEN | RCC_APB2ENR_IOPAEN + RCC_APB2ENR_IOPBEN;
 	 
-	 //Advance Port Bus 1 enabled: TIM2 (PWM) & TIM4 (Encoder)
-	 RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;  // enable Timer2 clock
-	 RCC->APB1ENR |= RCC_APB1ENR_TIM4EN;  // enable Timer4 clock
+	 //Advance Port Bus 1 enabled: 
+	 //RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;  // enable Timer2 clock
+	 //RCC->APB1ENR |= RCC_APB1ENR_TIM4EN;  // enable Timer4 clock
 	 
+	 PID_Init();
 	 Init_Clock();
 	 Init_External_Interrupt();
 	 Init_Encoder_Counter();
-	 
-	 
+   GPIOA->ODR |= 0x0;  
    while(1){
-	
-		  control_signal = PID(&PID_Controller, Encoder_grades, 90);
-	    PWM_Output(control_signal);
 		 
- }
+		  PID(&PID_Controller, &Encoder_grades, 60, &control_signal);
+	    PWM_Output(&control_signal);	 
+   }
 }
  
 
+
+/**
+  * @brief  Initialize the PID controller structure        
+  * @note   This function must be used before use the PID controler.
+  *         Otherwise, any configuration based on this structere will be incorrect.  
+  * @param  None
+  * @retval None
+  */
 void PID_Init(void){
 
-   
-	 PID_Controller.pGain = 0.1;
-	 PID_Controller.iGain = 0;
-	 PID_Controller.dGain = 0;
+	 PID_Controller.pGain = .55;    //Proportional gain
+	 PID_Controller.iGain = 0.002;      //Integral gain
+	 PID_Controller.dGain = 0;      //Derivative gain
 	
 	 PID_Controller.iMax = 10;
 	 PID_Controller.iMin = -10;
 	
 	 PID_Controller.iState = 0;
 	 PID_Controller.dState = 0;
-
 }
 
 void Init_Clock(void){
@@ -140,20 +133,12 @@ void Init_Clock(void){
     SystemCoreClockUpdate();                // 11. calculate the SYSCLOCK value
 	
 }
-
-void Init_GPIO(void){
-	
-	
-}
-
-void PWM_Output(float control_signal){
+void PWM_Output(float * control_signal){
 	
 	float duty_cycle_percent = 0;
 	float duty_clock_cycles = 0; 
 	uint8_t Max_sink_voltaje = 24;
-	//Control signal saturation (Max an Minus DC sink value)
-	if (control_signal < - 24) control_signal = -24;
-	else if (control_signal > 24) control_signal = 24;
+	
 	
 	//Configure PA2 & PA3 as outputs 
 	GPIOA->CRL |= GPIO_CRL_MODE2_1 + GPIO_CRL_MODE2_0; //PA2 Output mode 2 MHz  (A1 H Bridge )
@@ -170,21 +155,21 @@ void PWM_Output(float control_signal){
 	
 	//TIMx capture/compare register 1 (TIMx_CCR1)    Duty
 	
-	if(control_signal > 0 && control_signal < 24){
+	if(*control_signal  > 0 && *control_signal  < 24){
 	  
 		//Port output data register (GPIOx_ODR) (x=A..G) 
-		GPIOA->ODR |= GPIO_ODR_ODR0;                      //Motor turn right
-		duty_cycle_percent = control_signal/Max_sink_voltaje;
+		GPIOA->ODR = GPIO_ODR_ODR2;                      //Motor turn right
+		duty_cycle_percent = *control_signal/Max_sink_voltaje;
 	}
 	
-	if(control_signal < 0 && control_signal > -24){
+	if(*control_signal < 0 && *control_signal > -24){
 	  
 		//Port output data register (GPIOx_ODR) (x=A..G) 
-		GPIOA->ODR |= GPIO_ODR_ODR1; 		//Motor turn left
-		duty_cycle_percent = -(control_signal/Max_sink_voltaje);
+		GPIOA->ODR = GPIO_ODR_ODR3; 		//Motor turn left
+		duty_cycle_percent = -(*control_signal/Max_sink_voltaje);
 	}
 	
-	if(control_signal == 0 ){
+	if(*control_signal == 0 ){
 	  
 		//Port output data register (GPIOx_ODR) (x=A..G) 
 		GPIOA->ODR |= 0x0;                      //Motor turn left
@@ -202,10 +187,12 @@ void PWM_Output(float control_signal){
 	
 	//TIMx control register 1 (TIMx_CR1) 
 	TIM2->CR1 |= TIM_CR1_CEN;        //Enable TIM2
+	
+	GPIOA->ODR |= 0x0;  
    
 }
 
- void Init_Encoder_Counter(void){   //Configure TIM4 for quadrature encoder read
+void Init_Encoder_Counter(void){   //Configure TIM4 for quadrature encoder read
 	
 	
 	 //Port configuration register high (GPIOx_CRH) 
@@ -318,10 +305,9 @@ void USART_Send(int8_t ch){
 
 }
 
-float PID(SPid * pid, float real_position, float desired_position)
-{
+void PID(SPid * pid, float * Encoder_grades, float desired_position, float * control_signal){
 	
-	float error = desired_position -real_position;
+	float error = desired_position -*Encoder_grades;
 	float pTerm, dTerm, iTerm;
 	pTerm = pid->pGain * error; // calculate the proportional term
 
@@ -335,10 +321,20 @@ float PID(SPid * pid, float real_position, float desired_position)
 	iTerm = pid->iGain * pid->iState; // calculate the integral term
 
 	
-	dTerm = pid->dGain * (pid->dState - real_position);
-	pid->dState = real_position;
+	dTerm = pid->dGain * (pid->dState - *Encoder_grades); //Calculate the derivative term
+	pid->dState = *Encoder_grades;
 
-	return pTerm + dTerm + iTerm;
+	*control_signal = pTerm + dTerm + iTerm;
+	
+	//Control signal saturation (Max an Minus DC sink value)
+	if (*control_signal < -24){
+	
+		*control_signal = -23.9;
+	}
+	else if (*control_signal > 24){
+	
+		*control_signal = 23.9;
+	}
 
 }
 
