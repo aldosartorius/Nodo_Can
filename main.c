@@ -29,12 +29,21 @@
  
 typedef struct
 {
+<<<<<<< HEAD
 			float dState;            // Last position input
 			float iState;            // Integrator state
 			float iMax, iMin;        // Maximum and minimum allowable integrator state
 			float iGain,             // integral gain
 			pGain,                   // proportional gain
 			dGain;                   // derivative gain
+=======
+     float dState;            // Last position input
+     float iState;            // Integrator state
+     float iMax, iMin;        // Maximum and minimum allowable integrator state
+     float iGain,             // integral gain
+     pGain,                   // proportional gain
+     dGain;                   // derivative gain
+>>>>>>> 1aecbd39a793713fd181c3e4b3d883f732dd1eee
 } SPid;
  
  
@@ -57,8 +66,13 @@ void USART_Send(int8_t);
 //UART Baud-Rate: APB1 Timer-UART 36,000,000/115200 = 312 = 0x138
 #define UART_BAUDRATE        (115200)
 #define UART_BBR_VALUE  (SystemCoreClock/UART_BAUDRATE)
+<<<<<<< HEAD
 
 
+=======
+
+
+>>>>>>> 1aecbd39a793713fd181c3e4b3d883f732dd1eee
 //Global variables
 int32_t Encoder_Pulses;
 float Encoder_grades;
@@ -68,6 +82,7 @@ SPid PID_Controller;
 
   
  int main(void){
+<<<<<<< HEAD
 
 			//Advance Port Bus 1 enabled: TIM2 (PWM), TIM4 (Encoder) & USART3
 			RCC->APB1ENR |= RCC_APB1ENR_TIM2EN + RCC_APB1ENR_TIM4EN + RCC_APB1ENR_USART3EN; 
@@ -88,6 +103,28 @@ SPid PID_Controller;
 		 
 			PID(&PID_Controller, &Encoder_grades, 60, &control_signal);
 			PWM_Output(&control_signal);	 
+=======
+
+	 //Advance Port Bus 1 enabled: TIM2 (PWM), TIM4 (Encoder) & USART3
+	 RCC->APB1ENR |= RCC_APB1ENR_TIM2EN + RCC_APB1ENR_TIM4EN + RCC_APB1ENR_USART3EN; 
+	 
+	 //Advance Port Bus 2 enabled: AFIO, GPIO_A & GPIO_B
+	 RCC->APB2ENR |= RCC_APB2ENR_AFIOEN | RCC_APB2ENR_IOPAEN + RCC_APB2ENR_IOPBEN;
+	 
+	 //Advance Port Bus 1 enabled: 
+	 //RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;  // enable Timer2 clock
+	 //RCC->APB1ENR |= RCC_APB1ENR_TIM4EN;  // enable Timer4 clock
+	 
+	 PID_Init();
+	 Init_Clock();
+	 Init_External_Interrupt();
+	 Init_Encoder_Counter();
+   GPIOA->ODR |= 0x0;  
+   while(1){
+		 
+		  PID(&PID_Controller, &Encoder_grades, 60, &control_signal);
+	    PWM_Output(&control_signal);	 
+>>>>>>> 1aecbd39a793713fd181c3e4b3d883f732dd1eee
    }
 }
  
@@ -102,6 +139,7 @@ SPid PID_Controller;
   */
 void PID_Init(void){
 
+<<<<<<< HEAD
 			PID_Controller.pGain = .55;    //Proportional gain
 			PID_Controller.iGain = 0.002;      //Integral gain
 			PID_Controller.dGain = 0;      //Derivative gain
@@ -111,10 +149,22 @@ void PID_Init(void){
 
 			PID_Controller.iState = 0;
 			PID_Controller.dState = 0;
+=======
+	 PID_Controller.pGain = .55;    //Proportional gain
+	 PID_Controller.iGain = 0.002;      //Integral gain
+	 PID_Controller.dGain = 0;      //Derivative gain
+	
+	 PID_Controller.iMax = 10;
+	 PID_Controller.iMin = -10;
+	
+	 PID_Controller.iState = 0;
+	 PID_Controller.dState = 0;
+>>>>>>> 1aecbd39a793713fd181c3e4b3d883f732dd1eee
 }
 
 void Init_Clock(void){
 	 
+<<<<<<< HEAD
 			// Conf clock : 72MHz using HSE 8MHz crystal w/ PLL X 9 (8MHz x 9 = 72MHz)
 			FLASH->ACR      |= FLASH_ACR_LATENCY_2; // 1. Two wait states, per datasheet
 			RCC->CFGR       |= RCC_CFGR_PPRE1_2;    // 2. prescale AHB1 = HCLK/2
@@ -131,10 +181,79 @@ void Init_Clock(void){
 			while( !(RCC->CFGR & RCC_CFGR_SWS_PLL) );    // 10. wait for PLL as source
 
 			SystemCoreClockUpdate();                // 11. calculate the SYSCLOCK value
+=======
+    // Conf clock : 72MHz using HSE 8MHz crystal w/ PLL X 9 (8MHz x 9 = 72MHz)
+    FLASH->ACR      |= FLASH_ACR_LATENCY_2; // 1. Two wait states, per datasheet
+    RCC->CFGR       |= RCC_CFGR_PPRE1_2;    // 2. prescale AHB1 = HCLK/2
+    RCC->CR         |= RCC_CR_HSEON;        // 3. enable HSE clock
+    while( !(RCC->CR & RCC_CR_HSERDY) );    // 4. wait for the HSEREADY flag
+    
+    RCC->CFGR       |= RCC_CFGR_PLLSRC;     // 5. set PLL source to HSE
+    RCC->CFGR       |= RCC_CFGR_PLLMULL9;   // 6. multiply by 9
+    RCC->CR         |= RCC_CR_PLLON;        // 7. enable the PLL
+    while( !(RCC->CR & RCC_CR_PLLRDY) );    // 8. wait for the PLLRDY flag
+    
+    RCC->CFGR       |= RCC_CFGR_SW_PLL;     // 9. set clock source to pll
+
+    while( !(RCC->CFGR & RCC_CFGR_SWS_PLL) );    // 10. wait for PLL as source
+    
+    SystemCoreClockUpdate();                // 11. calculate the SYSCLOCK value
 	
 }
 void PWM_Output(float * control_signal){
 	
+	float duty_cycle_percent = 0;
+	float duty_clock_cycles = 0; 
+	uint8_t Max_sink_voltaje = 24;
+	
+	
+	//Configure PA2 & PA3 as outputs 
+	GPIOA->CRL |= GPIO_CRL_MODE2_1 + GPIO_CRL_MODE2_0; //PA2 Output mode 2 MHz  (A1 H Bridge )
+	GPIOA->CRL |= GPIO_CRL_MODE3_1 + GPIO_CRL_MODE3_0; //PA3 Output mode 2 MHz  (A2 H Bridge
+		 
+	
+	 //Port configuration register low (GPIOx_CRL)   
+	 //set MODE: 0b10 out @ 2 MHz; CNF: 0b10 alternate out push-pull
+	 GPIOA->CRL &= ~GPIO_CRL_CNF1_0;
+	 GPIOA->CRL |= GPIO_CRL_MODE1_1 + GPIO_CRL_CNF1_1; //PA1 (PWM H Bridge)
+	
+	 //TIMx auto-reload register (TIMx_ARR) 
+  TIM2->ARR = Period_in_clock_cycles;     //3600 cycles
+	
+	//TIMx capture/compare register 1 (TIMx_CCR1)    Duty
+	
+	if(*control_signal  > 0 && *control_signal  < 24){
+	  
+		//Port output data register (GPIOx_ODR) (x=A..G) 
+		GPIOA->ODR = GPIO_ODR_ODR2;                      //Motor turn right
+		duty_cycle_percent = *control_signal/Max_sink_voltaje;
+	}
+	
+	if(*control_signal < 0 && *control_signal > -24){
+	  
+		//Port output data register (GPIOx_ODR) (x=A..G) 
+		GPIOA->ODR = GPIO_ODR_ODR3; 		//Motor turn left
+		duty_cycle_percent = -(*control_signal/Max_sink_voltaje);
+	}
+	
+	if(*control_signal == 0 ){
+	  
+		//Port output data register (GPIOx_ODR) (x=A..G) 
+		GPIOA->ODR |= 0x0;                      //Motor turn left
+		duty_cycle_percent = 0;
+	}
+	
+	duty_clock_cycles = Period_in_clock_cycles-(duty_cycle_percent/1)*Period_in_clock_cycles;
+	TIM2->CCR2 =duty_clock_cycles;
+	
+	//TIMx capture/compare mode register 1 (TIMx_CCMR1) 
+	TIM2->CCMR1 |= TIM_CCMR1_OC2M + TIM_CCMR1_OC2PE; //111: PWM mode 2 - In upcounting, channel 1 is inactive as long as TIMx_CNT<TIMx_CCR1 else active 
+>>>>>>> 1aecbd39a793713fd181c3e4b3d883f732dd1eee
+	
+}
+void PWM_Output(float * control_signal){
+	
+<<<<<<< HEAD
 			float duty_cycle_percent = 0;
 			float duty_clock_cycles = 0; 
 			uint8_t Max_sink_voltaje = 24;
@@ -189,10 +308,20 @@ void PWM_Output(float * control_signal){
 			TIM2->CR1 |= TIM_CR1_CEN;        //Enable TIM2
 
 			GPIOA->ODR |= 0x0;  
+=======
+	//TIMx control register 1 (TIMx_CR1) 
+	TIM2->CR1 |= TIM_CR1_CEN;        //Enable TIM2
+	
+	GPIOA->ODR |= 0x0;  
+>>>>>>> 1aecbd39a793713fd181c3e4b3d883f732dd1eee
    
 }
 
 void Init_Encoder_Counter(void){   //Configure TIM4 for quadrature encoder read
+<<<<<<< HEAD
+=======
+	
+>>>>>>> 1aecbd39a793713fd181c3e4b3d883f732dd1eee
 	
 
 			//Port configuration register high (GPIOx_CRH) 
@@ -307,14 +436,21 @@ void USART_Send(int8_t ch){
 
 void PID(SPid * pid, float * Encoder_grades, float desired_position, float * control_signal){
 	
+<<<<<<< HEAD
 			float error = desired_position -*Encoder_grades;
 			float pTerm, dTerm, iTerm;
 			pTerm = pid->pGain * error; // calculate the proportional term
+=======
+	float error = desired_position -*Encoder_grades;
+	float pTerm, dTerm, iTerm;
+	pTerm = pid->pGain * error; // calculate the proportional term
+>>>>>>> 1aecbd39a793713fd181c3e4b3d883f732dd1eee
 
 
 			// calculate the integral state with appropriate limiting
 			pid->iState += error;
 
+<<<<<<< HEAD
 			if (pid->iState > pid->iMax) pid->iState = pid->iMax;
 			else if (pid->iState < pid->iMin) pid->iState = pid->iMin;
 
@@ -335,6 +471,23 @@ void PID(SPid * pid, float * Encoder_grades, float desired_position, float * con
 
 				*control_signal = 23.9;
 			}
+=======
+	
+	dTerm = pid->dGain * (pid->dState - *Encoder_grades); //Calculate the derivative term
+	pid->dState = *Encoder_grades;
+
+	*control_signal = pTerm + dTerm + iTerm;
+	
+	//Control signal saturation (Max an Minus DC sink value)
+	if (*control_signal < -24){
+	
+		*control_signal = -23.9;
+	}
+	else if (*control_signal > 24){
+	
+		*control_signal = 23.9;
+	}
+>>>>>>> 1aecbd39a793713fd181c3e4b3d883f732dd1eee
 
 }
 
