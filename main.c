@@ -88,9 +88,11 @@ SPid PID_Controller;
 		 
 			PID(&PID_Controller, &Encoder_grades, 60, &control_signal);
 			PWM_Output(&control_signal);	 
+		  //USART_Send('A');
    }
 }
- 
+
+
 
 
 /**
@@ -102,8 +104,8 @@ SPid PID_Controller;
   */
 void PID_Init(void){
 
-			PID_Controller.pGain = .55;    //Proportional gain
-			PID_Controller.iGain = 0.002;      //Integral gain
+			PID_Controller.pGain = 1.1;    //Proportional gain
+			PID_Controller.iGain = 0.01;      //Integral gain
 			PID_Controller.dGain = 0;      //Derivative gain
 
 			PID_Controller.iMax = 10;
@@ -284,8 +286,8 @@ void USART_Init(){
 			//PA 12 Tx
 
 			//Port configuration register high (GPIOx_CRH)
-			GPIOA->CRH |= ~GPIO_CRH_CNF11_0 + GPIO_CRH_CNF11_1;                          //PA11  Input mode/Pull Up
-			GPIOA->CRH |= GPIO_CRH_MODE12_0 + ~GPIO_CRH_CNF12_0 + GPIO_CRH_CNF12_1 ;     //PA12  Output mode/ Push pull
+			GPIOB->CRH |= ~GPIO_CRH_CNF10_0 + GPIO_CRH_CNF10_1;                          //PB10  Input mode/Pull Up
+			GPIOB->CRH |= GPIO_CRH_MODE11_0 + ~GPIO_CRH_CNF11_0 + GPIO_CRH_CNF11_1 ;     //PB11  Output mode/ Push pull
 
 			//Baud rate register (USART_BRR)
 			USART3->BRR = UART_BBR_VALUE;          //0x138   
